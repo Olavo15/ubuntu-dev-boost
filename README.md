@@ -37,10 +37,10 @@ Este script automatiza a instalação de diversas ferramentas de desenvolvimento
 2. Dê permissão de execução ao script
 
     ```bash
-    chmod +x setup.sh
+    chmod +x setup_dev.sh
 3. Execute o script
     ```bash 
-    ./setup.sh
+    ./setup_dev.sh
 4. Configure os dados do Git e o repositório para clonagem no setup.sh antes de rodar o script:
     ```bash
     echo "📁 Configurando Git e clonando repositório..."
