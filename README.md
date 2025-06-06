@@ -1,11 +1,11 @@
-# 🚀 Script de Instalação de Ambiente de Desenvolvimento no Ubuntu
+# 🚀 Script de Instalação de Ambiente de Desenvolvimento no Kali
 
-Este script automatiza a instalação de diversas ferramentas de desenvolvimento em sistemas baseados no **Ubuntu**. Ele instala PHP, Laravel, Node.js, Python, Git, Docker, VS Code, Google Chrome, Steam, PostgreSQL e ainda clona um repositório do GitHub.
+Este script automatiza a instalação de diversas ferramentas de desenvolvimento em sistemas baseados no **Ubuntu/Kali Linux**. Ele instala PHP, Laravel, Node.js, Python, Git, Docker, VS Code, Google Chrome, Steam, PostgreSQL e ainda clona um repositório do GitHub.
 
 ## ✅ O que este script instala
 
 - [x] **Atualizações do sistema**
-- [x] Ferramentas essenciais: `curl`, `wget`, `gnupg`, etc.
+- [x] Ferramentas essenciais: `curl`, `wget`, `gnupg`, etc.Ubuntu
 - [x] **Visual Studio Code**
 - [x] **PHP + Composer + Laravel**
 - [x] **Python 3 + pip**
