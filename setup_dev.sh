@@ -1,104 +1,137 @@
 #!/bin/bash
 
-set -e  # Encerra o script se ocorrer qualquer erro
+set -e
 
-echo "🛠️ Atualizando sistema e instalando ferramentas essenciais..."
-sudo apt update && sudo apt upgrade -y
-sudo apt install -y \
-  curl wget gnupg lsb-release software-properties-common \
-  apt-transport-https ca-certificates xdg-utils openssh-client
+echo "[+] Atualizando o sistema..."
+sudo apt update && sudo apt full-upgrade -y
 
-# -------- Visual Studio Code --------
-echo "📦 Instalando Visual Studio Code..."
-wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg
-sudo install -o root -g root -m 644 microsoft.gpg /etc/apt/trusted.gpg.d/
-sudo sh -c 'echo "deb [arch=amd64] https://packages.microsoft.com/repos/vscode stable main" > /etc/apt/sources.list.d/vscode.list'
-rm microsoft.gpg
+echo "[+] Instalando dependências principais..."
+sudo apt install -y curl wget unzip zip gnupg ca-certificates lsb-release software-properties-common apt-transport-https
+
+echo "[+] Instalando Visual Studio Code..."
+wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > packages.microsoft.gpg
+sudo install -o root -g root -m 644 packages.microsoft.gpg /usr/share/keyrings/
+echo "deb [arch=amd64 signed-by=/usr/share/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main" | sudo tee /etc/apt/sources.list.d/vscode.list
 sudo apt update
 sudo apt install -y code
+rm packages.microsoft.gpg
 
-# -------- PHP & Laravel --------
-echo "🐘 Instalando PHP e Laravel..."
-sudo apt install -y php php-cli php-mbstring unzip curl php-xml composer
-composer global require laravel/installer
-
-# Garante que o path do Composer esteja no PATH
-if ! grep -q 'composer/vendor/bin' ~/.bashrc; then
-  echo 'export PATH="$HOME/.composer/vendor/bin:$PATH"' >> ~/.bashrc
-  export PATH="$HOME/.composer/vendor/bin:$PATH"
-fi
-
-# -------- Python --------
-echo "🐍 Instalando Python..."
-sudo apt install -y python3 python3-pip
-
-# -------- Node.js --------
-echo "🟩 Instalando Node.js..."
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-sudo apt install -y nodejs
-
-# -------- Git --------
-echo "🔧 Instalando Git..."
+echo "[+] Instalando Git..."
 sudo apt install -y git
 
-# -------- Docker --------
-echo "🐳 Instalando Docker..."
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] \
-https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | \
-sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-sudo apt update
-sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+echo "[+] Instalando Docker..."
+sudo apt install -y docker.io
+sudo systemctl enable docker
+sudo systemctl start docker
 sudo usermod -aG docker $USER
 
-echo "⚠️ Você precisa sair e entrar novamente na sessão para usar o Docker sem sudo."
+echo "[+] Atualizando Python para a última versão disponível..."
+sudo apt install -y python3 python3-pip python3-venv
+sudo ln -sf /usr/bin/python3 /usr/bin/python
+sudo ln -sf /usr/bin/pip3 /usr/bin/pip
 
-# -------- Steam --------
-echo "🎮 Instalando Steam..."
-sudo apt install -y steam
+echo "[+] Instalando PHP e extensões..."
+sudo apt install -y php php-cli php-mbstring php-xml php-bcmath php-curl php-zip php-mysql php-tokenizer php-pgsql php-sqlite3 php-common php-gd php-soap php-intl php-readline
 
-# -------- Google Chrome --------
-echo "🌐 Instalando Google Chrome..."
-wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-sudo apt install -y ./google-chrome-stable_current_amd64.deb
-rm -f google-chrome-stable_current_amd64.deb
+echo "[+] Instalando Composer..."
+EXPECTED_SIGNATURE="$(wget -q -O - https://composer.github.io/installer.sig)"
+php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+ACTUAL_SIGNATURE="$(php -r "echo hash_file('sha384', 'composer-setup.php');")"
 
-# -------- PostgreSQL --------
-echo "🐘 Instalando PostgreSQL..."
-sudo apt install -y postgresql postgresql-contrib
-
-# -------- Atualizando dependências --------
-echo "🔁 Atualizando dependências novamente..."
-sudo apt update && sudo apt upgrade -y
-
-# -------- SSH para GitHub --------
-echo "🔐 Gerando chave SSH para GitHub..."
-if [ ! -f "$HOME/.ssh/id_ed25519.pub" ]; then
-  read -p "Digite o e-mail para usar na chave SSH do GitHub: " ssh_email
-  ssh-keygen -t ed25519 -C "$ssh_email" -f "$HOME/.ssh/id_ed25519" -N ""
-  eval "$(ssh-agent -s)"
-  ssh-add ~/.ssh/id_ed25519
-else
-  echo "🔑 Chave SSH já existe. Pulando geração."
+if [ "$EXPECTED_SIGNATURE" != "$ACTUAL_SIGNATURE" ]; then
+    echo 'ERRO: Assinatura do Composer inválida!'
+    rm composer-setup.php
+    exit 1
 fi
 
-# Copia a chave pública para exibição
-echo "🔑 Sua chave pública SSH:"
-cat ~/.ssh/id_ed25519.pub
+php composer-setup.php --quiet
+sudo mv composer.phar /usr/local/bin/composer
+rm composer-setup.php
 
-# Tenta abrir a página do GitHub para adicionar a chave
-echo "🌐 Abrindo GitHub para adicionar a chave SSH..."
-xdg-open https://github.com/settings/ssh/new
+echo "[+] Instalando Node.js (LTS) e npm..."
+curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+sudo apt install -y nodejs
 
-# -------- Configuração do Git --------
-echo "📁 Configurando Git e clonando repositório..."
-git config --global user.name "UserName"
-git config --global user.email "Email@gmail.com"
+echo "[+] Instalando MariaDB..."
+sudo apt install -y mariadb-server mariadb-client
+sudo systemctl enable mariadb
+sudo systemctl start mariadb
 
-# Clonagem via SSH (se a chave for adicionada com sucesso)
-REPO_SSH="" 
-git clone "$REPO_SSH" || echo "⚠️ Falha ao clonar via SSH. Verifique se a chave foi adicionada ao GitHub."
+echo "[+] Instalando Laravel..."
+composer global require laravel/installer
+echo 'export PATH="$HOME/.config/composer/vendor/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
 
-echo "✅ Tudo instalado com sucesso!"
+echo "[+] Criando e ativando Swap permanente (8GB)..."
+SWAPFILE="/swapfile"
 
+sudo swapoff -a || true
+sudo rm -f $SWAPFILE
+
+if ! sudo fallocate -l 8G $SWAPFILE; then
+    echo "[!] fallocate falhou, tentando com dd..."
+    sudo dd if=/dev/zero of=$SWAPFILE bs=1M count=8192
+fi
+
+sudo chmod 600 $SWAPFILE
+sudo mkswap $SWAPFILE
+sudo swapon $SWAPFILE
+
+sudo sed -i '/\/swapfile/d' /etc/fstab
+echo "$SWAPFILE none swap sw 0 0" | sudo tee -a /etc/fstab
+
+swapon --show
+free -h
+
+# === Solicita usuário e email para Git ===
+read -rp "Digite o usuário Git (ex: user): " GIT_USER
+read -rp "Digite o email Git (ex: fsag@gmail.com): " GIT_EMAIL
+
+SSH_KEY_PATH="$HOME/.ssh/id_ed25519"
+
+echo "[+] Configurando Git com usuário '$GIT_USER' e email '$GIT_EMAIL'..."
+git config --global user.name "$GIT_USER"
+git config --global user.email "$GIT_EMAIL"
+
+if [ ! -f "$SSH_KEY_PATH" ]; then
+    echo "[+] Gerando nova chave SSH..."
+    ssh-keygen -t ed25519 -C "$GIT_EMAIL" -f "$SSH_KEY_PATH" -N ""
+else
+    echo "[!] Chave SSH já existe em $SSH_KEY_PATH. Pulando geração."
+fi
+
+echo "[+] Iniciando ssh-agent e adicionando chave..."
+eval "$(ssh-agent -s)"
+ssh-add "$SSH_KEY_PATH"
+
+echo "[+] Chave pública gerada:"
+echo "------------------------------------------------------------"
+cat "$SSH_KEY_PATH.pub"
+echo "------------------------------------------------------------"
+
+GITHUB_TOKEN="SEU_TOKEN_GITHUB_AQUI"
+
+if [ "$GITHUB_TOKEN" != "SEU_TOKEN_GITHUB_AQUI" ]; then
+    echo "[+] Enviando chave pública para GitHub via API..."
+    SSH_KEY=$(cat "$SSH_KEY_PATH.pub")
+    TITLE="Notebook $(hostname) - $(date +'%Y-%m-%d %H:%M:%S')"
+
+    RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: token $GITHUB_TOKEN" \
+        -H "Accept: application/vnd.github+json" \
+        https://api.github.com/user/keys \
+        -d "{\"title\":\"$TITLE\", \"key\":\"$SSH_KEY\"}")
+
+    if [ "$RESPONSE" == "201" ]; then
+        echo "[✔] Chave SSH adicionada com sucesso ao GitHub."
+    elif [ "$RESPONSE" == "422" ]; then
+        echo "[!] Chave já existe no GitHub."
+    else
+        echo "[!] Falha ao adicionar chave SSH ao GitHub. Código HTTP: $RESPONSE"
+    fi
+else
+    echo "[ℹ] GITHUB_TOKEN não configurado. Pule o envio automático da chave SSH ao GitHub."
+    echo "    Para enviar automaticamente, edite o script e insira seu token GitHub na variável GITHUB_TOKEN."
+fi
+
+echo "[✔] Instalação e configuração finalizadas com sucesso!"
+echo "[ℹ] Reinicie ou faça logout/login para aplicar permissões do Docker, PATH do Laravel e grupo do usuário."
